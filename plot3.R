@@ -1,29 +1,33 @@
-##    Assumes files downloaded, unziped and placed in your working directory (File can be found here: https://d396qusza40orc.cloudfront.net/exdata%2Fdata%2Fhousehold_power_consumption.zip) I downloaded on 2/3/2015.
+##    Read in and clean the electric power consumption dataset containing measurements of electric power consumption in one household with a one-minute sampling rate over a period of almost 4 years from the UC Irvine Machine Learning Repository. 
+##    MAKE SURE YOU SET YOUR WORKING DIRECTORY. ALL FILES AND ACTONS PERFORMED IN WORKING DIR.
+##    Checks if dataset is downloaded and unzipped in Working Dir, if it is not, it downloads the file. dataset sucessfully downloaded from URL on 10/4/2015.
 
-fileList<-list.files()        ##    grab the file names in your working directory
-powerData<-read.table(fileList[2], header = TRUE, sep = ";", na.strings = "NA", stringsAsFactors = FALSE, nrows = 75000)    ##  The second item in the list contains our textfile string, here we read it into R, I found via looking through the data that the dates we want are within the first 75,000 lines, so I only read in the first 75,000 lines and not the 2.5 million.
+localData <- "household_power_consumption.txt"
 
-powerData$Date <- as.Date(powerData$Date, '%d/%m/%Y')
-date1 <- as.Date("2007-02-01")
-date2 <- as.Date("2007-02-02")
+if (!file.exists(localData)) {
+  url <- "http://d396qusza40orc.cloudfront.net/exdata%2Fdata%2Fhousehold_power_consumption.zip"
+  temp <- tempfile()
+  download.file(url, temp)
+  unzip(temp)
+}
 
-powerData <- subset(powerData, Date >= date1 & Date <= date2)     ##    subset data via the dates that we are interested in
+library("sqldf")    ##  We will use the sqldf package for reading in the file, using sql to select for specific dates.
 
-powerData$Global_active_power <- as.numeric(powerData$Global_active_power)    ##    almost all the variables have been coerced to characters, I had trouble with some operations because of this for plot one so I converted it to numeric.
+powerDataSubset <- read.csv2.sql(file = "household_power_consumption.txt", "select * from file where Date in ('1/2/2007','2/2/2007')")
 
-##    creaded a POSIXlt variable by combining 
-##    date and time to use in some of the 
-##    plots (for x-axis)   
+##    creaded a POSIXlt variable called Timestamp by combining 
+##    date (converted to a Date object) and time
 
-powerData$Timestamp <- paste(powerData$Date, powerData$Time)
-powerData$Timestamp <- as.POSIXlt(powerData$Timestamp)
+powerDataSubset$Date <- as.Date(powerDataSubset$Date, '%d/%m/%Y')
+powerDataSubset$Timestamp <- paste(powerDataSubset$Date, powerDataSubset$Time)
+powerDataSubset$Timestamp <- as.POSIXlt(powerDataSubset$Timestamp)
 
 ##    Plot 3: Output file as a png            
 ##    as plot3.png in the working directory  
 
 png(file = "plot3.png", bg = 'transparent') 
-plot(powerData$Timestamp, powerData$Sub_metering_1, type = "l", ylab = "Energy sub metering", xlab = "")
-lines(powerData$Timestamp, powerData$Sub_metering_2, col = "red")
-lines(powerData$Timestamp, powerData$Sub_metering_3, col = "blue")
+plot(powerDataSubset$Timestamp, powerDataSubset$Sub_metering_1, type = "l", ylab = "Energy sub metering", xlab = "")
+lines(powerDataSubset$Timestamp, powerDataSubset$Sub_metering_2, col = "red")
+lines(powerDataSubset$Timestamp, powerDataSubset$Sub_metering_3, col = "blue")
 legend("topright", c("Sub_metering_1","Sub_metering_2","Sub_metering_3"), lty = 1, col = c("black", "red", "blue"))
 dev.off() 
